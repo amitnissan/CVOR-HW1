@@ -109,6 +109,8 @@ def video(video_path, model, output_path, num_of_history_frames=6, labels_path='
     frame_height = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
     video_fps = int(cap.get(cv.CAP_PROP_FPS))
     size = (frame_width, frame_height)
+    frame_bbox = [0, 0, frame_width, frame_height]
+    last_valid_preds = []
     result = cv.VideoWriter(output_path,
                             cv.VideoWriter_fourcc(*'mp4v'),
                             video_fps, size)
@@ -157,17 +159,31 @@ def video(video_path, model, output_path, num_of_history_frames=6, labels_path='
                 cur_bbox = hist_boxes[cur_frame_ix]
                 cur_classes = final_classes[0]
 
-                frame = bbv.add_multiple_labels(cur_frame, cur_classes, cur_bbox, text_bg_color=(255, 255, 0))
-                frame = bbv.draw_multiple_rectangles(cur_frame, cur_bbox, bbox_color=(255, 255, 0))
-                result.write(frame)
-                # # Press Q on keyboard to  exit
-                if cv.waitKey(33) & 0xFF == ord('q'):
-                    break
+                cur_bbox.append(frame_bbox)
 
-            # Break the loop
-            else:
+                if len(cur_classes) != 2:
+                    frame_classes = last_valid_preds.copy()
+                else:
+                    frame_classes = cur_classes.copy()
+                    last_valid_preds = frame_classes.copy()
+
+                if 'Right' in frame_classes[0]:
+                    cur_classes.append(' '.join(frame_classes))
+                else:
+                    cur_classes.append(' '.join(list(reversed(frame_classes))))
+
+            frame = bbv.add_multiple_labels(cur_frame, cur_classes, cur_bbox, text_bg_color=(255, 255, 0), top=False)
+            frame = bbv.draw_multiple_rectangles(cur_frame, cur_bbox, bbox_color=(255, 255, 0))
+            result.write(frame)
+            # # Press Q on keyboard to  exit
+            if cv.waitKey(33) & 0xFF == ord('q'):
                 break
 
-    # When everything done, release the video capture object
-    cap.release()
-    result.release()
+        # Break the loop
+        else:
+            break
+
+
+# When everything done, release the video capture object
+cap.release()
+result.release()
