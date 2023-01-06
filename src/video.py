@@ -183,7 +183,6 @@ def video(video_path, model, output_path, num_of_history_frames=6, labels_path='
         else:
             break
 
-
-# When everything done, release the video capture object
-cap.release()
-result.release()
+    # When everything done, release the video capture object
+    cap.release()
+    result.release()
